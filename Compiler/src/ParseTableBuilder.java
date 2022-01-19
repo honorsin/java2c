@@ -8,6 +8,8 @@ public class ParseTableBuilder {
 	private ArrayList<Symbols> symbolArray = new ArrayList<Symbols>();
 	private boolean runFirstSetPass = true;
 	private boolean runFollowSetPass = true;
+	private int[][] parseTable;
+	int productionCount = 0;
 
 	public ParseTableBuilder() {
 		initProductions();
@@ -22,12 +24,14 @@ public class ParseTableBuilder {
 
 		productions = new ArrayList<int[]>();
 		productions.add(new int[] { SymbolDefine.TERM, SymbolDefine.EXPR_PRIME });
+		productions.add(new int[0]);
 		Symbols expr = new Symbols(SymbolDefine.EXPR, true, productions);
 		symbolMap.put(SymbolDefine.EXPR, expr);
 		symbolArray.add(expr);
 
 		productions = new ArrayList<int[]>();
 		productions.add(new int[] { SymbolDefine.PLUS, SymbolDefine.TERM, SymbolDefine.EXPR_PRIME });
+		productions.add(new int[0]);
 		Symbols expr_prime = new Symbols(SymbolDefine.EXPR_PRIME, true, productions);
 		symbolMap.put(SymbolDefine.EXPR_PRIME, expr_prime);
 		symbolArray.add(expr_prime);
@@ -40,6 +44,7 @@ public class ParseTableBuilder {
 
 		productions = new ArrayList<int[]>();
 		productions.add(new int[] { SymbolDefine.TIMES, SymbolDefine.FACTOR, SymbolDefine.TERM_PRIME });
+		productions.add(new int[0]);
 		Symbols term_prime = new Symbols(SymbolDefine.TERM_PRIME, true, productions);
 		symbolMap.put(SymbolDefine.TERM_PRIME, term_prime);
 		symbolArray.add(term_prime);
@@ -86,9 +91,10 @@ public class ParseTableBuilder {
 				addSymbolFirstSet(symbol);
 			}
 
-			printAllFirstSet();
-			System.out.println("============");
 		}
+
+		printAllFirstSet();
+		System.out.println("============");
 	}
 
 	private void addSymbolFirstSet(Symbols symbol) {
@@ -98,6 +104,10 @@ public class ParseTableBuilder {
 
 		for (int i = 0; i < symbol.productions.size(); i++) {
 			int[] rightSize = symbol.productions.get(i);
+			if (rightSize.length == 0) {
+				continue;
+			}
+
 			if (isSymbolTerminals(rightSize[0]) && symbol.firstSet.contains(rightSize[0]) == false) {
 				runFirstSetPass = true;
 				symbol.firstSet.add(rightSize[0]);
@@ -165,9 +175,10 @@ public class ParseTableBuilder {
 				addSymbolFollowSet(symbol);
 			}
 
-			printAllFollowSet();
-			System.out.println("***********************");
 		}
+
+		printAllFollowSet();
+		System.out.println("***********************");
 	}
 
 	private void printAllFollowSet() {
@@ -210,7 +221,6 @@ public class ParseTableBuilder {
 			 */
 			for (int j = 0; j < rightSize.length; j++) {
 				Symbols current = symbolMap.get(rightSize[j]);
-				// 终结符直接跳到下个表达式
 				if (isSymbolTerminals(current.value) == true) {
 					continue;
 				}
@@ -260,6 +270,101 @@ public class ParseTableBuilder {
 		if (add) {
 			System.out.print("add symbol to followset:");
 			printFollowSet(symbolBeAdded);
+		}
+	}
+
+	public void runSelectionSet() {
+		runFirstSets();
+		runFollowSets();
+		Iterator<Symbols> it = symbolArray.iterator();
+		while (it.hasNext()) {
+			Symbols symbol = it.next();
+			addSymbolSelectionSet(symbol);
+		}
+
+	}
+
+	private void addSymbolSelectionSet(Symbols symbol) {
+		if (isSymbolTerminals(symbol.value) == true) {
+			return;
+		}
+
+		boolean isNullableProduction = true;
+		for (int i = 0; i < symbol.productions.size(); i++) {
+			int[] rightSize = symbol.productions.get(i);
+			ArrayList<Integer> selection = new ArrayList<Integer>();
+
+			for (int j = 0; j < rightSize.length; j++) {
+				Symbols next = symbolMap.get(rightSize[j]);
+				if (next.isNullable == false) {
+					isNullableProduction = false;
+					addSetToSelectionSet(selection, next.firstSet);
+					break;
+				}
+
+				addSetToSelectionSet(selection, next.firstSet);
+			}
+
+			if (isNullableProduction) {
+				addSetToSelectionSet(selection, symbol.followSet);
+			}
+
+			symbol.selectionSet.add(selection);
+			isNullableProduction = true;
+		}
+
+	}
+
+	private void addSetToSelectionSet(ArrayList<Integer> selectionSet, ArrayList<Integer> set) {
+		for (int i = 0; i < set.size(); i++) {
+			if (selectionSet.contains(set.get(i)) == false) {
+				selectionSet.add(set.get(i));
+			}
+		}
+
+	}
+
+	public void buildParseTable() {
+
+		initializeParseTable();
+		setParsetTable();
+		printParseTable();
+	}
+
+	private void initializeParseTable() {
+		parseTable = new int[SymbolDefine.NO_TERMINAL_MAXRANGE][SymbolDefine.TERMINAL_MAX_RANGE];
+		for (int i = 0; i < SymbolDefine.NO_TERMINAL_MAXRANGE; i++) {
+			for (int j = 0; j < SymbolDefine.TERMINAL_MAX_RANGE; j++) {
+				parseTable[i][j] = -1;
+			}
+		}
+	}
+
+	private void setParsetTable() {
+		Iterator it = symbolArray.iterator();
+		while (it.hasNext()) {
+			Symbols symbol = (Symbols) it.next();
+			if (isSymbolTerminals(symbol.value) == true) {
+				continue;
+			}
+
+			for (int i = 0; i < symbol.selectionSet.size(); i++) {
+				ArrayList<Integer> selection = symbol.selectionSet.get(i);
+				for (int j = 0; j < selection.size(); j++) {
+					int column = selection.get(j);
+					parseTable[symbol.value - SymbolDefine.NO_TERMINAL_VALUE_BASE][selection.get(j)] = productionCount;
+				}
+				productionCount++;
+			}
+		}
+	}
+
+	private void printParseTable() {
+		for (int i = 0; i < SymbolDefine.NO_TERMINAL_MAXRANGE; i++) {
+			for (int j = 0; j < SymbolDefine.TERMINAL_MAX_RANGE; j++) {
+				System.out.print(parseTable[i][j] + " ");
+			}
+			System.out.print("\n");
 		}
 	}
 }
