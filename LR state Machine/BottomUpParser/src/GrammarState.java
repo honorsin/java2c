@@ -2,23 +2,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Stack;
 
 
 public class GrammarState {
-	private static int stateNumCount = 0;
+	public static int stateNumCount = 0;
 	private boolean printInfo = false;
 	private boolean transitionDone = false;
-    private int stateNum = -1;
+    public  int stateNum = -1;
     private GrammarStateManager stateManager = GrammarStateManager.getGrammarManager();
     private ArrayList<Production> productions = new ArrayList<Production>();
     private HashMap<Integer, GrammarState> transition = new HashMap<Integer, GrammarState>();
     private ArrayList<Production> closureSet = new ArrayList<Production>();
     private ProductionManager productionManager = ProductionManager.getProductionManager();
     private HashMap<Integer, ArrayList<Production>> partition = new HashMap<Integer, ArrayList<Production>>();
-    private ArrayList<Production> uselessProduction = new ArrayList<Production>();
+    private ArrayList<Production> mergedProduction = new ArrayList<Production>();
     
-  
     public static void  increateStateNum() {
     	stateNumCount++;
     }
@@ -35,10 +36,27 @@ public class GrammarState {
     	this.closureSet.addAll(this.productions);
     }
     
+    public void stateMerge(GrammarState state) {
+    	if (this.productions.contains(state.productions) == false) {
+    		for (int i = 0; i < state.productions.size(); i++) {
+    			if (this.productions.contains(state.productions.get(i)) == false
+    					&& mergedProduction.contains(state.productions.get(i)) == false
+    					) {
+    				mergedProduction.add(state.productions.get(i));
+    			}
+    		}
+    	}
+    	
+    }
+    
     public void print() {
     	System.out.println("State Number: " + stateNum);
     	for (int i = 0; i < productions.size(); i++) {
     		productions.get(i).print();
+    	}
+    	
+    	for (int i = 0; i < mergedProduction.size(); i++) {
+    		mergedProduction.get(i).print();	
     	}
     }
     
@@ -56,16 +74,13 @@ public class GrammarState {
     	}
     	
     	transitionDone = true;
-    	System.out.println("\n====make transition=====\n");
-    	print();
-    	
+  
     	makeClosure();
     	partition();
     	makeTransition();
-    	
-    	System.out.print("\n");
-    	
+   
     	printInfo = true;
+    	
     }
     
     private void makeClosure() {
@@ -75,15 +90,15 @@ public class GrammarState {
     		productionStack.push(productions.get(i));
     	}
     	
-    	System.out.println("---begin make closure----");
+    	//System.out.println("---begin make closure----");
     	
     	while (productionStack.empty() == false) {
     		Production production = productionStack.pop();
-    		System.out.println("\nproduction on top of stack is : ");
-    		production.print();
+    	//	System.out.println("\nproduction on top of stack is : ");
+    		//production.print();
     		//production.printBeta();
     		if (SymbolDefine.isSymbolTerminals(production.getDotSymbol()) == true) {
-    			    System.out.println("symbol after dot is not non-terminal, ignore and prcess next item");
+    			//    System.out.println("symbol after dot is not non-terminal, ignore and prcess next item");
     			    continue;	
     			}
     		
@@ -97,21 +112,19 @@ public class GrammarState {
     			Production newProduct = (oldProduct).cloneSelf();
     			newProduct.addLookAheadSet(lookAhead);
     			
-    			System.out.print("create new production: ");
-    			newProduct.print();
+    			//System.out.print("create new production: ");
+    			//newProduct.print();
     			
     			if (closureSet.contains(newProduct) == false) {  
-    				System.out.println("push and add new production to stack and closureSet");
+    				//System.out.println("push and add new production to stack and closureSet");
     				
     				closureSet.add(newProduct);
     				productionStack.push(newProduct);
     				
-    				removeRedundantProduction(newProduct);
-    				
-    				
+    				removeRedundantProduction(newProduct);	
     			}
     			else {
-    				System.out.println("the production is already exist!");
+    			//	System.out.println("the production is already exist!");
     			}
     			
     		}
@@ -119,8 +132,8 @@ public class GrammarState {
     		
     	}
     	
-    	printClosure();
-    	System.out.println("----end make closure----");
+    	//printClosure();
+   // 	System.out.println("----end make closure----");
     	
     }
     
@@ -137,8 +150,8 @@ public class GrammarState {
     				removeHappended = true;
     				closureSet.remove(item);
     				
-    				System.out.print("remove redundant production: ");
-    				item.print();
+    			//	System.out.print("remove redundant production: ");
+    			//	item.print();
     				break;
     			}
     		}
@@ -146,15 +159,6 @@ public class GrammarState {
     }
     
   
-    
-    private void printLookAheadSet(ArrayList<Integer> set) {
-    	System.out.print("current production's look ahead set : { ");
-    	for (int i = 0; i < set.size(); i++) {
-    		System.out.print(SymbolDefine.getSymbolStr(set.get(i)) + " ");
-    	}
-    	System.out.println("}");
-    }
-    
     private void printClosure() {
     	if (printInfo) {
     		return;
@@ -186,7 +190,7 @@ public class GrammarState {
     	
     	
     	
-    	printPartition();
+    //	printPartition();
     }
     
     private void printPartition() {
@@ -219,13 +223,15 @@ public class GrammarState {
     
     private void makeTransition() {
     	for (Map.Entry<Integer, ArrayList<Production>> entry : partition.entrySet()) {
-    		System.out.println("\n====begin print transition info ===");
+    	//	System.out.println("\n====begin print transition info ===");
     		GrammarState nextState = makeNextGrammarState(entry.getKey());
     		transition.put(entry.getKey(), nextState);
-    		System.out.println("from state " + stateNum + " to State " + nextState.stateNum + " on " + 
-    		SymbolDefine.getSymbolStr(entry.getKey()));
-    		System.out.println("----State " + nextState.stateNum + "------");
-    		nextState.print();
+    		//System.out.println("from state " + stateNum + " to State " + nextState.stateNum + " on " + 
+    	//	SymbolDefine.getSymbolStr(entry.getKey()));
+    	//	System.out.println("----State " + nextState.stateNum + "------");
+    		//nextState.print();
+    		
+    		stateManager.addTransition(this, nextState, entry.getKey());
     	}
     	
     	extendFollowingTransition();
@@ -242,9 +248,58 @@ public class GrammarState {
     
     @Override
     public boolean equals(Object obj) {
-    	GrammarState state = (GrammarState)obj;
-    	
-    	return state.productions.equals(this.productions);
-
+    	return checkProductionEqual(obj, false);
     }
+    
+    public boolean checkProductionEqual(Object obj, boolean isPartial) {
+    	GrammarState state = (GrammarState)obj;
+    	 
+    	if (state.productions.size() != this.productions.size()) {
+    		return false;
+    	}
+    	
+    	int equalCount = 0;
+    	
+    	for (int i = 0; i < state.productions.size(); i++) {
+             for (int j = 0; j < this.productions.size(); j++) {
+            	 if (isPartial == false) {
+               	  if (state.productions.get(i).equals(this.productions.get(j)) == true) {
+         				equalCount++;
+         				break;
+         			 }
+                 }
+                 else {
+               	    if (state.productions.get(i).productionEequals(this.productions.get(j)) == true) {
+               	    	equalCount++;
+               	    	break;
+               	    }
+                 }
+             }
+    			
+    		}
+    	
+    		
+    	return equalCount == state.productions.size();
+    }
+    
+    public HashMap<Integer, Integer> makeReduce() {
+    	HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
+    	reduce(map, this.productions);
+    	reduce(map, this.mergedProduction);
+    	
+    	return map;
+    }
+    
+    private void  reduce(HashMap<Integer, Integer> map, ArrayList<Production> productions) {
+    	for (int i = 0; i < productions.size(); i++) {
+    		if (productions.get(i).canBeReduce()) {
+    			ArrayList<Integer> lookAhead = productions.get(i).getLookAheadSet();
+    			for (int j = 0; j < lookAhead.size(); j++) {
+    				map.put(lookAhead.get(j), (productions.get(i).getProductionNum()));
+    			}
+    		}
+    	}
+    }
+    
+    
 }

@@ -7,10 +7,12 @@ public class Production {
     private int left = 0;
     private ArrayList<Integer> right = null;
     private ArrayList<Integer> lookAhead = new ArrayList<Integer>();
+    private int productionNum = -1;
     
-    public Production(int left, int dot, ArrayList<Integer> right) {
+    public Production(int productionNum, int left, int dot, ArrayList<Integer> right) {
         this.left = left;
         this.right = right;
+        this.productionNum = productionNum;
         
         if (dot >= right.size()) {
         	dot = right.size();
@@ -22,7 +24,7 @@ public class Production {
     }
     
     public Production dotForward() {
-    	Production product = new Production(this.left, dotPos+1, this.right); 
+    	Production product = new Production(productionNum, this.left, dotPos+1, this.right); 
     	
     	product.lookAhead = new ArrayList<Integer>();
     	for (int i = 0; i < this.lookAhead.size(); i++) {
@@ -34,7 +36,7 @@ public class Production {
     
     public Production cloneSelf() {
     	
-        Production product = new Production(this.left, dotPos, this.right); 
+        Production product = new Production(productionNum, this.left, dotPos, this.right); 
     	
     	product.lookAhead = new ArrayList<Integer>();
     	for (int i = 0; i < this.lookAhead.size(); i++) {
@@ -45,27 +47,37 @@ public class Production {
     }
     
     public ArrayList<Integer> computeFirstSetOfBetaAndC() {
+    	/*
+    	 * 计算 First(β C)
+    	 * 将β 和 C ,前后相连再计算他们的First集合，如果β 里面的每一项都是nullable的，那么
+    	 * First(β C) 就是 First(β) 并上First(C), 由于C 必定是终结符的组合，所以First(C)等于C的第一个非终结符
+    	 * 例如C = {+, * , EOI} , First(C) = {+}
+    	 */
     	
     	ArrayList<Integer> set = new ArrayList<Integer>();
+    	for (int i = dotPos + 1; i < right.size(); i++) {
+    		set.add(right.get(i));
+    	}
     	set.addAll(lookAhead);
     	
     	ProductionManager manager = ProductionManager.getProductionManager();
+    	ArrayList<Integer> firstSet = new ArrayList<Integer>();
     	
-    	for (int i = dotPos + 1; i < right.size(); i++) {
-    		ArrayList<Integer> firstSet = manager.getFirstSetBuilder().getFirstSet(right.get(i));
+    	for (int i = 0; i < set.size(); i++) {
+    		ArrayList<Integer> lookAhead = manager.getFirstSetBuilder().getFirstSet(set.get(i));
     		
-    		for (int j = 0; j < firstSet.size(); j++) {
-    			if (set.contains(firstSet.get(j)) == false) {
-    				set.add(firstSet.get(j));
+    		for (int j = 0; j < lookAhead.size(); j++) {
+    			if (firstSet.contains(lookAhead.get(j)) == false) {
+    				firstSet.add(lookAhead.get(j));
     			}
     		}
     		
-    		if (manager.getFirstSetBuilder().isSymbolNullable(right.get(i)) == false) {
+    		if (manager.getFirstSetBuilder().isSymbolNullable(set.get(i)) == false) {
     			break;
     		}
     	}
     	
-    	return set;
+    	return firstSet;
     }
     
     public void printBeta() {
@@ -82,12 +94,9 @@ public class Production {
     }
     
     public void addLookAheadSet(ArrayList<Integer> list) {
-    	for (int i = 0; i < list.size(); i++) {
-    		if (lookAhead.contains(list.get(i)) == false) {
-    			lookAhead.add(list.get(i));
-    		}
-    	}
+    	lookAhead = list;
     }
+ 
     
     public int getLeft() {
     	return left;
@@ -110,19 +119,25 @@ public class Production {
     
     @Override
     public boolean equals(Object obj) {
+    	/*
+    	 * 判断两个表达式是否相同有两个条件，一是表达式相同，而是对应的Look ahead 集合也必须一致
+    	 */
     	Production product = (Production)obj;
     	
     	if (this.productionEequals(product) && this.lookAheadSetComparing(product) == 0) {
     		return true;
     	}
     	
-    	
     	return false;
-    	
     }
     
+   
+    
     public boolean coverUp(Production product) {
-    	
+    	/*
+    	 * 如果表达式相同，但是表达式1的look ahead 集合 覆盖了表达式2的look ahead 集合，
+    	 * 那么表达式1 就覆盖 表达式2
+    	 */
     	if (this.productionEequals(product) && this.lookAheadSetComparing(product) > 0) {
     		return true;
     	}
@@ -130,7 +145,7 @@ public class Production {
     	return false;
     }
     
-    private boolean productionEequals(Production product) {
+    public  boolean productionEequals(Production product) {
     	if (this.left != product.getLeft()) {
     		return false;
     	}
@@ -143,10 +158,12 @@ public class Production {
     		return false;
     	}
     	
+    	
     	return true;
     }
     
-    private int lookAheadSetComparing(Production product) {
+    
+    public int lookAheadSetComparing(Production product) {
     	if (this.lookAhead.size() > product.lookAhead.size()) {
     		return 1;
     	}
@@ -187,8 +204,17 @@ public class Production {
     	}
     	System.out.println("}");
     }
-
-
-  
+    
+    public boolean canBeReduce() {
+    	return dotPos >= right.size();
+    }
+    
+    public int  getProductionNum() {
+    	return productionNum;
+    }
+    
+    public ArrayList<Integer>  getLookAheadSet() {
+    	return lookAhead;
+    }
 
 }

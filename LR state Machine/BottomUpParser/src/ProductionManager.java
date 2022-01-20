@@ -23,37 +23,37 @@ public class ProductionManager {
     	//s -> e
     	ArrayList<Integer> right = null;
     	right = getProductionRight(new int[]{SymbolDefine.EXPR});
-    	Production production = new Production(SymbolDefine.STMT, 0, right);
+    	Production production = new Production(0,SymbolDefine.STMT, 0, right);
     	addProduction(production);
     	
     	//e -> e + t
     	right = getProductionRight(new int[]{SymbolDefine.EXPR, SymbolDefine.PLUS, SymbolDefine.TERM});
-    	production = new Production(SymbolDefine.EXPR, 0, right);
+    	production = new Production(1, SymbolDefine.EXPR, 0, right);
     	addProduction(production);
     	
     	//e -> t
     	right = getProductionRight(new int[]{SymbolDefine.TERM});
-    	production = new Production(SymbolDefine.EXPR, 0, right);
+    	production = new Production(2, SymbolDefine.EXPR, 0, right);
     	addProduction(production);
     	
     	//t -> t * f
     	right = getProductionRight(new int[]{SymbolDefine.TERM, SymbolDefine.TIMES, SymbolDefine.FACTOR});
-    	production = new Production(SymbolDefine.TERM, 0, right);
+    	production = new Production(3, SymbolDefine.TERM, 0, right);
     	addProduction(production);
     	
     	//t -> f
     	right = getProductionRight(new int[]{SymbolDefine.FACTOR});
-    	production = new Production(SymbolDefine.TERM, 0, right);
+    	production = new Production(4, SymbolDefine.TERM, 0, right);
     	addProduction(production);
     	
     	//f -> ( e )
     	right = getProductionRight(new int[]{SymbolDefine.LP, SymbolDefine.EXPR, SymbolDefine.RP});
-    	production = new Production(SymbolDefine.FACTOR, 0, right);
+    	production = new Production(5, SymbolDefine.FACTOR, 0, right);
     	addProduction(production);
     	
     	//f->NUM
     	right = getProductionRight(new int[]{SymbolDefine.NUM_OR_ID});
-    	production = new Production(SymbolDefine.FACTOR, 0, right);
+    	production = new Production(6,SymbolDefine.FACTOR, 0, right);
     	addProduction(production);
     }
     

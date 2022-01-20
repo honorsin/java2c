@@ -56,6 +56,10 @@ public class FirstSetBuilder {
     	Symbols factor = new Symbols(SymbolDefine.FACTOR, false, productions);
     	symbolMap.put(SymbolDefine.FACTOR, factor);
     	symbolArray.add(factor);	
+    	
+    	Symbols eoi = new Symbols(SymbolDefine.EOI, false, null);
+    	symbolMap.put(SymbolDefine.EOI, eoi);
+    	symbolArray.add(eoi);
     
     	Symbols plus = new Symbols(SymbolDefine.PLUS, false, null);
     	symbolMap.put(SymbolDefine.PLUS, plus);
